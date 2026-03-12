@@ -12,6 +12,7 @@ from pathlib import Path
 # Wallet storage location (agent's own wallet)
 WALLET_DIR = Path.home() / ".blockrun"
 WALLET_FILE = WALLET_DIR / ".session"
+SOLANA_WALLET_FILE = WALLET_DIR / ".solana-session"
 
 
 # Default configuration values
@@ -72,6 +73,37 @@ def get_private_key() -> Optional[str]:
         os.environ.get("BLOCKRUN_WALLET_KEY") or
         os.environ.get("BASE_CHAIN_WALLET_KEY")
     )
+
+
+def load_solana_wallet() -> Optional[str]:
+    """
+    Load Solana wallet private key from ~/.blockrun/.solana-session file.
+
+    Returns:
+        bs58-encoded private key string or None if not found
+    """
+    if SOLANA_WALLET_FILE.exists():
+        key = SOLANA_WALLET_FILE.read_text().strip()
+        if key:
+            return key
+    return None
+
+
+def get_solana_private_key() -> Optional[str]:
+    """
+    Get Solana private key - env var first, then session file.
+
+    Priority:
+        1. SOLANA_WALLET_KEY env var
+        2. ~/.blockrun/.solana-session file
+
+    Returns:
+        bs58-encoded private key string or None
+    """
+    env_key = os.environ.get("SOLANA_WALLET_KEY")
+    if env_key:
+        return env_key
+    return load_solana_wallet()
 
 
 def get_config() -> Dict[str, Any]:

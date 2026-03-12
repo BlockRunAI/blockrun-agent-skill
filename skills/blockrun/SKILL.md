@@ -455,6 +455,57 @@ from blockrun_llm import generate_wallet_qr_ascii, get_wallet_address
 print(generate_wallet_qr_ascii(get_wallet_address()))
 ```
 
+## Solana Wallet Management
+
+BlockRun also supports Solana for USDC payments. Install Solana support: `pip install blockrun-llm[solana]`
+
+**Solana wallet location:** `$HOME/.blockrun/.solana-session`
+
+### Create Solana Wallet
+```python
+from blockrun_llm import setup_agent_solana_wallet
+
+client = setup_agent_solana_wallet()  # Auto-creates wallet, returns SolanaLLMClient
+```
+
+### Check Solana Balance
+```python
+from blockrun_llm import get_or_create_solana_wallet, get_solana_usdc_balance
+
+wallet = get_or_create_solana_wallet()
+balance = get_solana_usdc_balance(wallet["address"])
+print(f"Balance: ${balance:.2f} USDC")
+print(f"Wallet: {wallet['address']}")
+```
+
+### Fund Solana Wallet (QR Code)
+```python
+from blockrun_llm import generate_solana_qr_ascii, get_or_create_solana_wallet
+
+wallet = get_or_create_solana_wallet()
+print(generate_solana_qr_ascii(wallet["address"]))
+```
+
+### Using SolanaLLMClient
+```python
+from blockrun_llm import setup_agent_solana_wallet
+
+client = setup_agent_solana_wallet()
+response = client.chat("openai/gpt-5.2", "Hello!")
+print(response)
+```
+
+### When to Use Base vs Solana
+
+| Use Case | Chain | Client |
+|----------|-------|--------|
+| Default payments | Base | `LLMClient` via `setup_agent_wallet()` |
+| Solana-native users | Solana | `SolanaLLMClient` via `setup_agent_solana_wallet()` |
+| Already have USDC on Solana | Solana | `SolanaLLMClient` |
+| Already have USDC on Base | Base | `LLMClient` |
+
+Both chains access the same models and endpoints. Choose based on where the user's USDC is.
+
 ## Troubleshooting
 
 **PaymentError: Payment was rejected**

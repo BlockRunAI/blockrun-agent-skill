@@ -515,6 +515,135 @@ def cmd_qr():
         return 1
 
 
+def cmd_solana_balance():
+    """Show Solana wallet USDC balance."""
+    try:
+        from blockrun_llm import get_or_create_solana_wallet, get_solana_usdc_balance
+
+        result = get_or_create_solana_wallet()
+        address = result["address"]
+        balance = get_solana_usdc_balance(address)
+        balance_str = f"{balance:.6f}"
+
+        branding.print_balance(
+            wallet=address,
+            balance=balance_str,
+            network="Solana"
+        )
+        return 0
+
+    except ImportError:
+        branding.print_error(
+            "Solana support not installed",
+            help_link="https://github.com/blockrunai/blockrun-llm"
+        )
+        print("  Install with: pip install blockrun-llm[solana]")
+        return 1
+    except Exception as e:
+        branding.print_error(f"Error: {e}")
+        return 1
+
+
+def cmd_solana_qr():
+    """Show QR code for Solana wallet funding."""
+    try:
+        from blockrun_llm import get_or_create_solana_wallet, open_solana_wallet_qr
+
+        result = get_or_create_solana_wallet()
+        address = result["address"]
+
+        print()
+        print(f"  Wallet: {address}")
+        print(f"  Network: Solana (Mainnet)")
+        print(f"  Currency: USDC")
+        print()
+        print("  Opening QR code...")
+        print("  Scan with any Solana wallet app to send USDC.")
+        print()
+
+        open_solana_wallet_qr(address)
+        return 0
+
+    except ImportError:
+        branding.print_error(
+            "Solana support not installed",
+            help_link="https://github.com/blockrunai/blockrun-llm"
+        )
+        print("  Install with: pip install blockrun-llm[solana]")
+        return 1
+    except Exception as e:
+        branding.print_error(f"Error: {e}")
+        return 1
+
+
+def cmd_solana_status():
+    """Show Solana wallet status."""
+    try:
+        from scripts.wallet.solana import get_solana_wallet_status
+    except ImportError:
+        from wallet.solana import get_solana_wallet_status
+
+    status = get_solana_wallet_status()
+
+    if status["status"] == "connected":
+        print()
+        branding.print_success("Solana Wallet Connected")
+        print(f"  Address:  {status['address']}")
+        print(f"  Network:  {status['network']}")
+        print(f"  Currency: {status['currency']}")
+        print(f"  Explorer: {status['explorer_url']}")
+        print()
+    elif status["status"] == "not_installed":
+        branding.print_error("Solana support not installed")
+        print(f"  {status.get('help', '')}")
+        print()
+    else:
+        branding.print_error(f"Solana wallet: {status['status']}")
+        if "error" in status:
+            print(f"  {status['error']}")
+        if "help" in status:
+            print(f"  {status['help']}")
+        print()
+    return 0
+
+
+def cmd_solana_create():
+    """Create a new Solana wallet if one doesn't exist."""
+    try:
+        from blockrun_llm import get_or_create_solana_wallet, generate_solana_qr_ascii
+
+        result = get_or_create_solana_wallet()
+        address = result["address"]
+
+        if result["is_new"]:
+            branding.print_success(f"New Solana wallet created!")
+            print(f"  Address: {address}")
+            print(f"  Explorer: https://solscan.io/account/{address}")
+            print()
+            print("  Fund with USDC on Solana to start using BlockRun:")
+            print()
+            print(generate_solana_qr_ascii(address))
+            print(f"  Key stored securely in ~/.blockrun/.solana-session")
+            print(f"  Your private key never leaves your machine.")
+        else:
+            branding.print_success(f"Solana wallet already exists")
+            print(f"  Address: {address}")
+            print(f"  Explorer: https://solscan.io/account/{address}")
+        print()
+        return 0
+
+    except ImportError:
+        branding.print_error(
+            "Solana support not installed",
+            help_link="https://github.com/blockrunai/blockrun-llm"
+        )
+        print("  Install with: pip install blockrun-llm[solana]")
+        return 1
+    except Exception as e:
+        branding.print_error(f"Error: {e}")
+        return 1
+
+
 def cmd_models():
     """List available models (no wallet required)."""
     try:
@@ -683,6 +812,28 @@ More info: https://blockrun.ai
         action="store_true",
         help="Show wallet funding QR code (Base network)",
     )
+
+    # Solana commands
+    parser.add_argument(
+        "--solana-balance",
+        action="store_true",
+        help="Show Solana wallet USDC balance",
+    )
+    parser.add_argument(
+        "--solana-qr",
+        action="store_true",
+        help="Show Solana wallet funding QR code",
+    )
+    parser.add_argument(
+        "--solana-status",
+        action="store_true",
+        help="Show Solana wallet status",
+    )
+    parser.add_argument(
+        "--solana-create",
+        action="store_true",
+        help="Create a new Solana wallet (if none exists)",
+    )
     parser.add_argument(
         "--models", "-m",
         action="store_true",
@@ -770,6 +921,18 @@ More info: https://blockrun.ai
 
     if args.qr:
         return cmd_qr()
+
+    if args.solana_balance:
+        return cmd_solana_balance()
+
+    if args.solana_qr:
+        return cmd_solana_qr()
+
+    if args.solana_status:
+        return cmd_solana_status()
+
+    if args.solana_create:
+        return cmd_solana_create()
 
     if args.models:
         return cmd_models()
