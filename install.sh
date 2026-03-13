@@ -38,9 +38,9 @@ fi
 
 # Install SDK from PyPI (--no-cache-dir ensures latest version)
 if [ "$CHAIN" = "solana" ]; then
-    PKG="blockrun-llm[solana]>=0.7.4"
+    PKG="blockrun-llm[solana]>=0.8.0"
 else
-    PKG="blockrun-llm>=0.7.4"
+    PKG="blockrun-llm>=0.8.0"
 fi
 echo "Installing Python SDK ($PKG) from PyPI..."
 INSTALLED=false
@@ -85,7 +85,7 @@ if chain == "solana":
         v = getattr(blockrun_llm, '__version__', 'unknown')
         print(f'\nERROR: Solana extras missing (installed: v{v})')
         print(f'Import error: {e}')
-        print('Fix: pip install --no-cache-dir "blockrun-llm[solana]>=0.7.4"')
+        print('Fix: pip install --no-cache-dir "blockrun-llm[solana]>=0.8.0"')
         sys.exit(1)
 else:
     from blockrun_llm import setup_agent_wallet
