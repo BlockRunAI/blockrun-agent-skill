@@ -53,11 +53,31 @@ When the user asks for something, find the matching row and run the code. Do NOT
 **Always run as ONE Python script.** Do not split into multiple calls.
 
 ```
-1. Import + create client (setup_agent_wallet)
-2. Check balance
-3. Estimate cost, show to user, ask to proceed
-4. If confirmed: execute, show results, show cost
+1. Check chain preference (~/.blockrun/.chain) → "base" or "solana"
+   - If no preference file exists, ask user: "Base (USDC on Base) or Solana (USDC on Solana)?"
+   - Save their choice to ~/.blockrun/.chain
+2. Create client (setup_agent_wallet for Base, setup_agent_solana_wallet for Solana)
+3. Check balance
+4. Estimate cost, show to user, ask to proceed
+5. If confirmed: execute, show results, show cost
 ```
+
+### Chain Selection Helper
+```python
+from pathlib import Path
+
+chain_file = Path.home() / ".blockrun" / ".chain"
+chain = chain_file.read_text().strip() if chain_file.exists() else None
+
+if chain == "solana":
+    from blockrun_llm import setup_agent_solana_wallet
+    client = setup_agent_solana_wallet()
+else:
+    from blockrun_llm import setup_agent_wallet
+    client = setup_agent_wallet()
+```
+
+If user wants to switch chains: `echo "solana" > ~/.blockrun/.chain` (or `"base"`).
 
 ## How to Invoke
 
@@ -73,11 +93,21 @@ Common triggers: `blockrun`, `use grok`, `use gpt`, `dall-e`, `deepseek`, `gener
 
 ### Step 1: Check Balance First
 ```python
-from blockrun_llm import setup_agent_wallet
+from pathlib import Path
 
-client = setup_agent_wallet()
-balance = client.get_balance()
-address = client.get_wallet_address()
+chain_file = Path.home() / ".blockrun" / ".chain"
+chain = chain_file.read_text().strip() if chain_file.exists() else "base"
+
+if chain == "solana":
+    from blockrun_llm import setup_agent_solana_wallet, get_solana_usdc_balance
+    client = setup_agent_solana_wallet()
+    address = client.get_wallet_address()
+    balance = get_solana_usdc_balance(address)
+else:
+    from blockrun_llm import setup_agent_wallet
+    client = setup_agent_wallet()
+    balance = client.get_balance()
+    address = client.get_wallet_address()
 ```
 
 ### Step 2: Estimate Cost & Ask User

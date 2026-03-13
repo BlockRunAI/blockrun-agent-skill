@@ -1,10 +1,16 @@
 #!/bin/bash
 # BlockRun Install Script
 # One command to install BlockRun skill + SDK
+#
+# Usage:
+#   bash install.sh              # Default: Base chain (USDC on Base)
+#   CHAIN=solana bash install.sh # Solana chain (USDC on Solana)
 
 set -e
 
-echo "Installing BlockRun..."
+# Chain selection (default: base)
+CHAIN="${CHAIN:-base}"
+echo "Installing BlockRun (chain: $CHAIN)..."
 
 # Detect platform and set skills path
 if [ -d "$HOME/.gemini/antigravity" ]; then
@@ -31,22 +37,27 @@ else
 fi
 
 # Install SDK with fallbacks for different Python setups
-echo "Installing Python SDK..."
-if pip install --upgrade blockrun-llm >/dev/null 2>&1; then
+if [ "$CHAIN" = "solana" ]; then
+    PKG="blockrun-llm[solana]"
+else
+    PKG="blockrun-llm"
+fi
+echo "Installing Python SDK ($PKG)..."
+if pip install --upgrade "$PKG" >/dev/null 2>&1; then
     :
-elif pip install --user --upgrade blockrun-llm >/dev/null 2>&1; then
+elif pip install --user --upgrade "$PKG" >/dev/null 2>&1; then
     :
-elif pip install --user --break-system-packages --upgrade blockrun-llm >/dev/null 2>&1; then
+elif pip install --user --break-system-packages --upgrade "$PKG" >/dev/null 2>&1; then
     :
-elif python3 -m pip install --upgrade blockrun-llm >/dev/null 2>&1; then
+elif python3 -m pip install --upgrade "$PKG" >/dev/null 2>&1; then
     :
-elif python3 -m pip install --user --upgrade blockrun-llm >/dev/null 2>&1; then
+elif python3 -m pip install --user --upgrade "$PKG" >/dev/null 2>&1; then
     :
-elif python3 -m pip install --user --break-system-packages --upgrade blockrun-llm >/dev/null 2>&1; then
+elif python3 -m pip install --user --break-system-packages --upgrade "$PKG" >/dev/null 2>&1; then
     :
 else
-    echo "ERROR: Could not install blockrun-llm. Please install manually:"
-    echo "  pip install blockrun-llm"
+    echo "ERROR: Could not install $PKG. Please install manually:"
+    echo "  pip install $PKG"
     exit 1
 fi
 
@@ -69,20 +80,39 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# Save chain preference
+mkdir -p "$HOME/.blockrun"
+echo "$CHAIN" > "$HOME/.blockrun/.chain"
+
 # Verify installation and show status
 echo "Verifying..."
-python3 <<'PYEOF'
-from blockrun_llm import setup_agent_wallet, save_wallet_qr
+python3 - "$CHAIN" <<'PYEOF'
+import sys
+chain = sys.argv[1] if len(sys.argv) > 1 else "base"
 
-client = setup_agent_wallet(silent=True)
-addr = client.get_wallet_address()
-balance = client.get_balance()  # SDK has built-in RPC fallback
-
-# Save QR for later opening
-save_wallet_qr(addr)
+if chain == "solana":
+    from blockrun_llm import setup_agent_solana_wallet
+    from blockrun_llm.solana_wallet import save_solana_wallet_qr
+    client = setup_agent_solana_wallet(silent=True)
+    addr = client.get_wallet_address()
+    from blockrun_llm import get_solana_usdc_balance
+    balance = get_solana_usdc_balance(addr)
+    save_solana_wallet_qr(addr)
+    qr_file = "solana_qr.png"
+    chain_label = "Solana"
+    fund_msg = "Fund wallet: Send USDC on Solana to the address above"
+else:
+    from blockrun_llm import setup_agent_wallet, save_wallet_qr
+    client = setup_agent_wallet(silent=True)
+    addr = client.get_wallet_address()
+    balance = client.get_balance()
+    save_wallet_qr(addr)
+    qr_file = "qr.png"
+    chain_label = "Base"
+    fund_msg = "Fund wallet: Send USDC on Base to the address above"
 
 print()
-print('BlockRun installed!')
+print(f'BlockRun installed! (Chain: {chain_label})')
 print(f'Wallet: {addr}')
 print(f'Balance: ${balance:.2f} USDC')
 print()
@@ -96,8 +126,9 @@ print()
 print('Just ask Claude naturally. No "blockrun" prefix needed.')
 if balance == 0:
     print()
-    print('Fund wallet: Send USDC on Base to the address above')
-import sys
+    print(fund_msg)
+print()
+print(f'To switch chains: echo "solana" > ~/.blockrun/.chain  (or "base")')
 sys.stdout.flush()
 PYEOF
 
@@ -105,6 +136,9 @@ PYEOF
 sleep 3
 
 # Open QR code AFTER all text is printed
-if [ -f "$HOME/.blockrun/qr.png" ]; then
-    open "$HOME/.blockrun/qr.png" 2>/dev/null || xdg-open "$HOME/.blockrun/qr.png" 2>/dev/null || true
-fi
+for qr in "$HOME/.blockrun/qr.png" "$HOME/.blockrun/solana_qr.png"; do
+    if [ -f "$qr" ]; then
+        open "$qr" 2>/dev/null || xdg-open "$qr" 2>/dev/null || true
+        break
+    fi
+done
