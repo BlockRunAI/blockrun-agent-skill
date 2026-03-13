@@ -36,29 +36,32 @@ else
     cd "$SKILLS_DIR" && git pull --ff-only --quiet
 fi
 
-# Install SDK with fallbacks for different Python setups
+# Install SDK — use python3 -m pip (works in venvs and system python)
 if [ "$CHAIN" = "solana" ]; then
     PKG="blockrun-llm[solana]>=0.7.2"
 else
     PKG="blockrun-llm>=0.7.2"
 fi
 echo "Installing Python SDK ($PKG)..."
-if pip install --upgrade "$PKG" >/dev/null 2>&1; then
+if python3 -m pip install --upgrade "$PKG" 2>&1 | tail -1; then
     :
-elif pip install --user --upgrade "$PKG" >/dev/null 2>&1; then
+elif python3 -m pip install --user --upgrade "$PKG" 2>&1 | tail -1; then
     :
-elif pip install --user --break-system-packages --upgrade "$PKG" >/dev/null 2>&1; then
+elif pip install --upgrade "$PKG" 2>&1 | tail -1; then
     :
-elif python3 -m pip install --upgrade "$PKG" >/dev/null 2>&1; then
-    :
-elif python3 -m pip install --user --upgrade "$PKG" >/dev/null 2>&1; then
-    :
-elif python3 -m pip install --user --break-system-packages --upgrade "$PKG" >/dev/null 2>&1; then
+elif python3 -m pip install --break-system-packages --upgrade "$PKG" 2>&1 | tail -1; then
     :
 else
     echo "ERROR: Could not install $PKG. Please install manually:"
-    echo "  pip install $PKG"
+    echo "  pip install \"$PKG\""
     exit 1
+fi
+
+# Verify the package is importable by the SAME python3
+if ! python3 -c "import blockrun_llm" 2>/dev/null; then
+    echo "WARNING: blockrun-llm installed but not importable by python3."
+    echo "If you're using a virtual environment, activate it and run:"
+    echo "  pip install \"$PKG\""
 fi
 
 # Install CLI to ~/.local/bin
@@ -140,15 +143,4 @@ print(f'To switch chains: echo "solana" > ~/.blockrun/.chain  (or "base")')
 sys.stdout.flush()
 PYEOF
 
-# Delay so user can read output before QR opens
-sleep 3
-
-# Open QR code for the SELECTED chain only (don't show Base QR for Solana users)
-if [ "$CHAIN" = "solana" ]; then
-    QR_FILE="$HOME/.blockrun/solana_qr.png"
-else
-    QR_FILE="$HOME/.blockrun/qr.png"
-fi
-if [ -f "$QR_FILE" ]; then
-    open "$QR_FILE" 2>/dev/null || xdg-open "$QR_FILE" 2>/dev/null || true
-fi
+# QR codes saved to ~/.blockrun/ — user can open manually if needed

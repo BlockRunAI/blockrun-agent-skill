@@ -34,5 +34,12 @@ Do NOT ask about MCP vs Skill. Do NOT manually clone. Just run install.sh.
 ## After Install
 
 The skill is now loaded. The chain preference is saved at `~/.blockrun/.chain`.
-Use `/blockrun` or ask the user what they want to do.
-To switch chains later: `echo "solana" > ~/.blockrun/.chain` (or `"base"`)
+
+Tell the user they're ready, then suggest trying something:
+
+> You're all set! Try something like:
+> - "What's trending on X right now?" ($0.002)
+> - "Generate a logo for my project" ($0.04)
+> - "Search for latest AI agent news" (~$0.25)
+
+Do NOT reference anything from previous conversation context. Just show the wallet address, balance, and suggest the examples above.
