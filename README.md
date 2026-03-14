@@ -1,159 +1,181 @@
-# BlockRun: Real-Time X/Twitter Data & Image Gen for Your AI Agent
+# SocialClaw — X/Twitter Marketing Intelligence Agent
 
 <div align="center">
 
-![BlockRun](assets/blockrun-agent-skill.png)
+![SocialClaw](assets/blockrun-agent-skill.png)
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-orange.svg)](https://github.com/anthropics/skills)
-[![Antigravity](https://img.shields.io/badge/Antigravity-Compatible-4285F4.svg)](https://antigravity.google)
 [![No API Keys](https://img.shields.io/badge/API_Keys-None_Required-brightgreen.svg)](https://blockrun.ai)
+[![USDC Payments](https://img.shields.io/badge/Pay_with-USDC-2775CA.svg)](https://blockrun.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**X/Twitter intelligence for growth. No API keys, no subscriptions — just USDC micropayments.**
 
 </div>
 
-**Your AI agent can't access X/Twitter, generate images, or call other models. BlockRun fixes that — no API keys, no subscriptions, just micropayments.**
-
 ---
 
-## Use Cases
+## What SocialClaw Does
 
-### 1. Competitor Intelligence
+SocialClaw gives your AI agent real-time X/Twitter data and turns it into actionable marketing insights. Three workflows, one wallet.
 
-_Track what your competitors post, who follows them, and how they stack up against you._
+### Insight Report — `insight @username`
 
-```
-"compare @competitor vs @us"                → side-by-side engagement scores
-"get followers of @competitor"              → export 5,000 followers to CSV
-"analyze @competitor's X presence"          → content strategy insights
-"what has @competitor been tweeting?"       → recent posts with engagement stats
-```
-
-**Total cost: ~$0.32** — vs $100+/month for an X API subscription.
-
-### 2. Lead Generation from X
-
-_Build a prospect list from any account's followers — verified, with bios, ready for outreach._
+Deep-dive on any X account: profile stats, who's mentioning them, top followers by influence.
 
 ```
-"get verified followers of @targetcompany"  → high-value leads with bios
-"export followings of @investor"            → find their portfolio companies
-"lookup @lead1 @lead2 @lead3"              → enrich with follower counts, bios
+$ python scripts/socialclaw.py insight @jessepollak
+
+  PROFILE
+  Name:          jesse.base.eth
+  Followers:     347,004
+  Verified:      Yes
+  F/F Ratio:     78.7x
+
+  MENTIONS (20 recent)
+    @aiven_io         41 likes  3 RTs  Fully managed Kafka environment...
+    @marcopolo2027     0 likes  0 RTs  this is the future for @base app
+
+  TOP FOLLOWERS (by their follower count)
+    @alloxdotai              131,567 followers
+    @AprilCumberland          60,265 followers
+    @ellazhang516             38,968 followers
+
+  Cost: $0.08 (3 calls)
 ```
 
-CSV output with names, bios, follower counts — pipe straight into your CRM.
+### Topic Radar — `radar <topic>`
 
-**Total cost: ~$0.25 per 1,000 accounts.**
-
-### 3. Content & Trend Research
-
-_Find what's working on X before you post._
+What's trending, what content is working, where to jump in.
 
 ```
-"what's trending on X?"                     → trending topics ($0.002)
-"search X for AI agents"                    → top tweets with engagement
-"generate a cover image for my blog post"   → DALL-E image ($0.04)
+$ python scripts/socialclaw.py radar "AI agents"
+
+  TRENDING NOW
+    Anthropic          158 articles   115,983,616 views
+    OpenAI              48 articles    51,378,182 views
+    Claude Code         29 articles    44,825,583 views
+
+  LATEST TWEETS (20 found)
+    @Computerworld  Microsoft shuffles leadership as Copilot and AI agents reshape...
+    @badlogicgames  pi now has feature parity with other agents from July 2025...
+
+  Cost: $0.07 (4 calls)
 ```
 
-**Total cost: ~$0.07** for a full research session.
+### Competitor Compare — `compare @user1 @user2`
 
-### 4. Multi-Model Dev Workflow
-
-_Get GPT to review what Claude wrote. Use DeepSeek to process 500 files for $0.05._
+Side-by-side: followers, mentions, engagement, top followers.
 
 ```
-"GPT review this PR for security issues"    → GPT-5.2 second opinion (~$0.02)
-"deepseek summarize every file in /docs"    → bulk processing at $0.0001/call
-"generate a logo for my startup"            → DALL-E image ($0.04)
-```
+$ python scripts/socialclaw.py compare @jessepollak @VitalikButerin
 
-**30+ models, one wallet.** No API keys to juggle.
+  METRIC              @jessepollak    @VitalikButerin
+  ─────────────────────────────────────────────────
+  Followers              347,004         5,800,000
+  Mentions engagement         59                 7
+  Top follower          131,567               525
+
+  Cost: $0.08 (6 calls)
+```
 
 ---
 
 ## Install
 
-In Claude Code, just say:
+In Claude Code:
 
 ```
-try https://github.com/BlockRunAI/blockrun-agent-skill
+try https://github.com/BlockRunAI/socialclaw
 ```
 
-Claude will install it, create a USDC wallet, and show a QR code to fund. Done.
+Or manually:
 
-<details>
-<summary>Other install methods</summary>
-
-- **Shell:** `curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash`
-- **Solana:** `CHAIN=solana bash install.sh`
-- **MCP Server:** `claude mcp add blockrun -- npx @blockrun/mcp`
-- **Antigravity:** `git clone https://github.com/BlockRunAI/blockrun-agent-skill ~/.gemini/antigravity/skills/blockrun`
-
-</details>
+```bash
+git clone https://github.com/BlockRunAI/socialclaw
+cd socialclaw
+pip install blockrun-llm[solana]
+```
 
 ---
 
-## X/Twitter Endpoints
+## Wallet Setup
 
-15 endpoints your agent can't get natively:
+SocialClaw auto-detects wallets from any provider. No manual config needed.
 
-| What you say | Endpoint | Cost |
-|-------------|----------|------|
-| "get @user's profile" | `x_user_info()` | $0.002 |
-| "lookup @user1 @user2" | `x_user_lookup()` | $0.002/user |
-| "get followers of @user" | `x_followers()` | $0.05/page |
-| "who does @user follow?" | `x_followings()` | $0.05/page |
-| "verified followers of @user" | `x_verified_followers()` | $0.048/page |
-| "get @user's tweets" | `x_user_tweets()` | $0.032/page |
-| "who's mentioning @user?" | `x_user_mentions()` | $0.032/page |
-| "get data on this tweet" | `x_tweet_lookup()` | $0.16/batch |
-| "show replies to this tweet" | `x_tweet_replies()` | $0.032/page |
-| "show the full thread" | `x_tweet_thread()` | $0.032/page |
-| "search X for..." | `x_search()` | $0.032/page |
-| "what's trending?" | `x_trending()` | $0.002 |
-| "what articles are going viral?" | `x_articles_rising()` | $0.05 |
-| "analyze @user's presence" | `x_author_analytics()` | $0.02 |
-| "compare @user1 vs @user2" | `x_compare_authors()` | $0.05 |
+It scans `~/.<any-folder>/wallet.json` and `~/.<any-folder>/solana-wallet.json` — works with agentcash, x402, or any compatible wallet.
+
+**Solana preferred** (cheaper fees). Fund with USDC on Solana to get started.
+
+---
+
+## API Endpoints
+
+All data from [AttentionVC](https://attentionvc.com) via BlockRun's x402 proxy:
+
+| Endpoint | What you get | Cost |
+|----------|-------------|------|
+| `users/info` | Profile, bio, stats, verification | $0.002 |
+| `users/lookup` | Batch profiles (up to 100) | $0.002/user |
+| `users/followers` | Follower list with stats (~200/page) | $0.05/page |
+| `users/followings` | Following list (~200/page) | $0.05/page |
+| `users/tweets` | User's tweets with engagement | $0.032/page |
+| `users/mentions` | Who's talking about them | $0.032/page |
+| `search` | Search tweets (Latest/Top) | $0.032/page |
+| `trending` | Trending topics + view counts | $0.002 |
+| `articles/rising` | Viral content detection | $0.05 |
+| `tweets/lookup` | Batch tweet data (up to 200) | $0.16/batch |
+| `tweets/replies` | Replies to a tweet | $0.032/page |
+| `tweets/thread` | Full thread context | $0.032/page |
+
+---
+
+## Data Auto-Save
+
+Every paid API response is saved to `~/.blockrun/data/` as JSON — you paid for it, you keep it. Files are timestamped and organized by endpoint:
+
+```
+~/.blockrun/data/
+  20260314_030816_trending.json
+  20260314_030820_search_blockrunai.json
+  20260314_025259_mentions_jessepollak.json
+```
 
 ---
 
 ## Pricing
 
-| Capability | $1 gets you |
-|------------|-------------|
-| X trending / profiles | ~500 calls |
-| X followers / followings | ~20 pages (~4,000 accounts) |
-| X tweets / search | ~31 pages |
-| DALL-E images | ~25 images |
-| GPT second opinions | ~50 calls |
-| DeepSeek bulk processing | ~10,000 calls |
+| Workflow | What it does | Cost |
+|----------|-------------|------|
+| Insight Report | Profile + mentions + followers | ~$0.08 |
+| Topic Radar | Trending + search + rising articles | ~$0.07 |
+| Competitor Compare | Two accounts side-by-side | ~$0.08 |
 
-**$1-5 lasts weeks.** Compare: a single X API profile lookup costs $0.002 here vs $100/month for the official X API.
+**$1 USDC gets you ~12 full reports.** No subscriptions, no monthly fees.
 
 ---
 
 ## How It Works
 
-Your agent has a USDC wallet. When it needs a capability, it pays per request:
+```
+You: "analyze @competitor's X presence"
+       ↓
+SocialClaw: finds wallet → calls BlockRun APIs → pays with USDC → saves data locally
+       ↓
+Output: actionable marketing insight report
+```
 
-- No API keys to manage
-- No monthly subscriptions ($0.002 per profile vs $100/month X API)
-- Wallet balance is your spending cap
-- Private key stays local (`~/.blockrun/`), never sent to any server
-
-**New to USDC?** [5-minute guide](USDC_ON_BASE.md)
-
----
-
-## Auto-Save
-
-All paid data is automatically saved to `~/.blockrun/data/` — you never pay twice for the same data.
+- Wallet auto-detected from any `~/.<provider>/` folder
+- Payment via x402 protocol (USDC on Solana or Base)
+- Private key never leaves your machine — only signatures sent
+- All data cached locally in `~/.blockrun/data/`
 
 ---
 
 ## Links
 
-[blockrun.ai](https://blockrun.ai) · [USDC Guide](USDC_ON_BASE.md) · [x402 Protocol](https://x402.org) · [care@blockrun.ai](mailto:care@blockrun.ai)
+[blockrun.ai](https://blockrun.ai) · [AttentionVC API](https://attentionvc.com) · [x402 Protocol](https://x402.org) · [care@blockrun.ai](mailto:care@blockrun.ai)
 
 ---
 
-MIT · Built by [@bc1beat](https://x.com/bc1beat)
+MIT · Powered by [BlockRun](https://blockrun.ai) × [AttentionVC](https://attentionvc.com) · Built by [@bc1beat](https://x.com/bc1beat)
