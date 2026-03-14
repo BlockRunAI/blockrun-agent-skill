@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="assets/socialclaw-banner.png" alt="SocialClaw" width="600" />
+<img src="assets/banner.png" alt="SocialClaw" width="600" />
 
 <h3>X/Twitter Marketing Intelligence for AI Agents</h3>
 
