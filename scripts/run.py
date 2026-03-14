@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BlockRun Claude Code Wallet - Unified CLI Entry Point
+SocialClaw - X/Twitter Marketing Intelligence CLI
 
-Access unlimited LLM models and image generation through USDC micropayments.
+Access X/Twitter data, image generation, and LLM models through USDC micropayments.
 Your private key never leaves your machine - only signatures are transmitted.
 
 Usage:
@@ -29,7 +29,7 @@ from typing import Optional
 
 # Plugin version (keep in sync with plugin.json)
 __version__ = "1.0.0"
-GITHUB_PLUGIN_URL = "https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/plugin.json"
+GITHUB_PLUGIN_URL = "https://raw.githubusercontent.com/BlockRunAI/socialclaw/main/plugin.json"
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -632,7 +632,7 @@ def cmd_solana_create():
             print(f"  Address: {address}")
             print(f"  Explorer: https://solscan.io/account/{address}")
             print()
-            print("  Fund with USDC on Solana to start using BlockRun:")
+            print("  Fund with USDC on Solana to start using SocialClaw:")
             print()
             print(generate_solana_qr_ascii(address))
             print(f"  Key stored in solana-wallet.json")
@@ -697,13 +697,13 @@ def cmd_models():
 
 def cmd_check_update():
     """Check for plugin updates from GitHub."""
-    print(f"\n  BlockRun Plugin v{__version__}")
+    print(f"\n  SocialClaw v{__version__}")
     print("  Checking for updates...\n")
 
     try:
         req = urllib.request.Request(
             GITHUB_PLUGIN_URL,
-            headers={"User-Agent": "BlockRun-Plugin"}
+            headers={"User-Agent": "SocialClaw-Plugin"}
         )
         with urllib.request.urlopen(req, timeout=10) as response:
             remote_plugin = json.loads(response.read().decode())
@@ -744,7 +744,7 @@ def cmd_check_update():
 
 def cmd_version():
     """Show current version."""
-    print(f"BlockRun Plugin v{__version__}")
+    print(f"SocialClaw v{__version__}")
     return 0
 
 
@@ -786,8 +786,8 @@ def cmd_clear_budget():
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="blockrun-agent-skill",
-        description="BlockRun Claude Code Wallet - Access unlimited LLMs via USDC micropayments",
+        prog="socialclaw",
+        description="SocialClaw - X/Twitter marketing intelligence via USDC micropayments",
         epilog="""
 Examples:
   %(prog)s "What is quantum computing?"

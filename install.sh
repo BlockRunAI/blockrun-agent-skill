@@ -1,6 +1,6 @@
 #!/bin/bash
-# BlockRun Install Script
-# One command to install BlockRun skill + SDK
+# SocialClaw Install Script
+# One command to install SocialClaw skill + SDK
 #
 # Usage:
 #   bash install.sh              # Default: Base chain (USDC on Base)
@@ -10,7 +10,7 @@ set -e
 
 # Chain selection (default: base)
 CHAIN="${CHAIN:-base}"
-echo "Installing BlockRun (chain: $CHAIN)..."
+echo "Installing SocialClaw (chain: $CHAIN)..."
 
 # ── Python detection ──────────────────────────────────────────────
 # Priority: active venv → python3 on PATH → python on PATH
@@ -45,17 +45,17 @@ echo "Using Python: $("$PYTHON" --version 2>&1) ($PYTHON)"
 SKILLS_DIRS=()
 
 if [ -d "$HOME/.claude" ]; then
-    SKILLS_DIRS+=("$HOME/.claude/skills/blockrun")
+    SKILLS_DIRS+=("$HOME/.claude/skills/socialclaw")
 fi
 
 if [ -d "$HOME/.gemini/antigravity" ]; then
-    SKILLS_DIRS+=("$HOME/.gemini/antigravity/skills/blockrun")
+    SKILLS_DIRS+=("$HOME/.gemini/antigravity/skills/socialclaw")
 fi
 
 # If neither detected, default to Claude Code
 if [ ${#SKILLS_DIRS[@]} -eq 0 ]; then
     mkdir -p "$HOME/.claude/skills"
-    SKILLS_DIRS+=("$HOME/.claude/skills/blockrun")
+    SKILLS_DIRS+=("$HOME/.claude/skills/socialclaw")
 fi
 
 # Clone or update skill in each target
@@ -68,7 +68,7 @@ for SKILLS_DIR in "${SKILLS_DIRS[@]}"; do
         if [ ! -d "$SKILLS_DIR" ]; then
             echo "Installing skill ($PLATFORM)..."
             mkdir -p "$(dirname "$SKILLS_DIR")"
-            git clone --depth 1 --quiet https://github.com/BlockRunAI/blockrun-agent-skill "$SKILLS_DIR"
+            git clone --depth 1 --quiet https://github.com/BlockRunAI/socialclaw "$SKILLS_DIR"
         else
             echo "Updating skill ($PLATFORM)..."
             cd "$SKILLS_DIR" && git pull --ff-only --quiet
@@ -163,7 +163,7 @@ else:
     fund_msg = "Fund wallet: Send USDC on Base to the address above"
 
 print()
-print(f'BlockRun installed! (Chain: {chain_label})')
+print(f'SocialClaw installed! (Chain: {chain_label})')
 print(f'Wallet: {addr}')
 print(f'Balance: ${balance:.2f} USDC')
 if balance == 0:
@@ -176,7 +176,7 @@ PYEOF
 else
     # Package installed to a different python — tell user how to fix
     echo ""
-    echo "BlockRun skill cloned and chain preference saved."
+    echo "SocialClaw skill cloned and chain preference saved."
     echo ""
     echo "NOTE: blockrun-llm was installed but $PYTHON can't find it."
     echo "This usually means you're using a virtual environment."

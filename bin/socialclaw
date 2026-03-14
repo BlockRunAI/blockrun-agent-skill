@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""BlockRun CLI - balance, generate, check commands."""
+"""SocialClaw CLI - balance, generate, check commands."""
 
 import sys
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: blockrun <command>")
+        print("Usage: socialclaw <command>")
         print("  balance          Show wallet address and USDC balance")
-        print("  generate <prompt> Generate image with DALL-E")
-        print("  check @user      Check X/Twitter account with Grok")
+        print("  generate <prompt> Generate image for post content")
+        print("  check @user      Check X/Twitter account insights")
         sys.exit(0)  # Not an error, just showing help
 
     cmd = sys.argv[1].lower()
@@ -17,13 +17,13 @@ def main():
         cmd_balance()
     elif cmd == "generate":
         if len(sys.argv) < 3:
-            print("Usage: blockrun generate <prompt>")
+            print("Usage: socialclaw generate <prompt>")
             sys.exit(1)
         prompt = " ".join(sys.argv[2:])
         cmd_generate(prompt)
     elif cmd == "check":
         if len(sys.argv) < 3:
-            print("Usage: blockrun check @username")
+            print("Usage: socialclaw check @username")
             sys.exit(1)
         user = sys.argv[2]
         cmd_check(user)

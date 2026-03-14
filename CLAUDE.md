@@ -1,45 +1,60 @@
-# BlockRun Agent Skill
+# SocialClaw — X/Twitter Marketing Intelligence Agent
 
-## When User Says "Try This" or "Install This"
+SocialClaw gives you X/Twitter marketing intelligence and growth analysis, powered by BlockRun's paid APIs (USDC micropayments via x402).
 
-First, briefly explain what this gives them:
+## Workflows
 
-> **BlockRun adds capabilities you don't have natively** — image generation (DALL-E, Flux), real-time X/Twitter data (followers, tweets, trends, analytics), image editing, and web search. It works through a pay-per-request micropayment wallet (USDC), so there's no subscription — you only pay for what you use (most requests cost $0.01–$0.05).
+### 1. Insight Report — `insight @username`
+Deep-dive on any X account. Calls:
+- `/v1/x/users/info` — detailed profile (bio, stats, join date)
+- `/v1/x/users/mentions` — who's talking about them
+- `/v1/x/users/followers` — follower list with follower counts
 
-Then ask ONE question: **Which chain do you want your payment wallet on — Base or Solana?**
-- **Base** (recommended) — EVM-compatible, lower fees, most users pick this
-- **Solana** — if you already use Solana wallets and prefer to fund with SOL-ecosystem USDC
+Summarize into: audience size, engagement quality, content themes, growth signals.
 
-Then run the install script:
+### 2. Topic Radar — `radar <topic>`
+What's hot and what content to create. Calls:
+- `/v1/x/trending` — trending topics with article counts and views
+- `/v1/x/search` — latest tweets matching the topic (use `sort_order: "Latest"` or `"Top"`)
+- `/v1/x/articles/rising` — viral/rising content detection
 
-```bash
-bash install.sh                # Default: Base chain
-CHAIN=solana bash install.sh   # Solana chain
+Summarize into: trending angles, top-performing content formats, suggested post ideas.
+
+### 3. Competitor Compare — `compare @user1 @user2`
+Side-by-side analysis of two accounts. Calls:
+- `/v1/x/users/info` for both users
+- `/v1/x/users/tweets` for both users (may 502, retry once)
+- `/v1/x/users/followers` for both users
+
+Summarize into: follower counts, posting frequency, content strategy differences, engagement comparison.
+
+## Additional Endpoints
+- `/v1/x/users/lookup` — batch user profiles (up to ~100 at once)
+- `/v1/x/users/tweets` — a user's tweets (sometimes returns 502, treat as available and retry once)
+- `/v1/images/generations` — generate images for post mockups
+
+## How to Make API Calls
+Use `SolanaLLMClient` from the `blockrun-llm` package. All endpoints are on `sol.blockrun.ai`. Example:
+
+```python
+from blockrun_llm import SolanaLLMClient
+client = SolanaLLMClient()
+result = client.request("/v1/x/trending")
 ```
 
-If running from a different directory:
-```bash
-bash /path/to/blockrun-agent-skill/install.sh
-CHAIN=solana bash /path/to/blockrun-agent-skill/install.sh
-```
+## Wallet Setup
+SocialClaw auto-scans for wallets in:
+- `~/.*/ wallet.json` (any dot-folder)
+- `~/.*/solana-wallet.json`
 
-Or if not cloned yet:
-```bash
-curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash
-CHAIN=solana curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash
-```
+No manual config needed — the first valid wallet found is used. Fund it with USDC on Solana.
 
-Do NOT ask about MCP vs Skill. Do NOT manually clone. Just run install.sh.
+## Costs
+- Each API call costs ~$0.002–$0.05
+- A full workflow (insight, radar, or compare) typically costs **$0.08–$0.15**
+- Image generation: ~$0.04/image
 
-## After Install
-
-The skill is now loaded. The chain preference is saved at `~/.blockrun/.chain`.
-
-Tell the user they're ready, then suggest trying something:
-
-> You're all set! Try something like:
-> - "What's trending on X right now?" ($0.002)
-> - "Generate a logo for my project" ($0.04)
-> - "Search for latest AI agent news" (~$0.25)
-
-Do NOT reference anything from previous conversation context. Just show the wallet address, balance, and suggest the examples above.
+## Important
+- Always present results as actionable marketing insights, not raw data dumps.
+- When a 502 occurs on `/v1/x/users/tweets`, retry once before giving up.
+- Combine multiple endpoint results into a single cohesive analysis.

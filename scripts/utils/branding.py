@@ -1,7 +1,7 @@
 """
-BlockRun Branding Utilities - Consistent CLI output formatting.
+SocialClaw Branding Utilities - Consistent CLI output formatting.
 
-Provides branded headers, footers, and response formatting for all BlockRun
+Provides branded headers, footers, and response formatting for all SocialClaw
 CLI operations, ensuring a professional and recognizable user experience.
 """
 
@@ -10,16 +10,16 @@ import sys
 
 
 class BlockRunBranding:
-    """Unified branding output system for BlockRun Claude Code Wallet."""
+    """Unified branding output system for SocialClaw."""
 
     # Compact ASCII logo for CLI
     LOGO = """
- ____  _            _    ____
-| __ )| | ___   ___| | _|  _ \\ _   _ _ __
-|  _ \\| |/ _ \\ / __| |/ / |_) | | | | '_ \\
-| |_) | | (_) | (__|   <|  _ <| |_| | | | |
-|____/|_|\\___/ \\___|_|\\_\\_| \\_\\\\__,_|_| |_|
-                         CLAUDE CODE WALLET"""
+ ____             _       _  ____ _
+/ ___|  ___   ___(_) __ _| |/ ___| | __ ___      __
+\\___ \\ / _ \\ / __| |/ _` | | |   | |/ _` \\ \\ /\\ / /
+ ___) | (_) | (__| | (_| | | |___| | (_| |\\ V  V /
+|____/ \\___/ \\___|_|\\__,_|_|\\____|_|\\__,_| \\_/\\_/
+                                    SOCIALCLAW"""
 
     # Simple header for regular operations
     HEADER_LINE = "=" * 60
@@ -74,7 +74,7 @@ class BlockRunBranding:
             print()
 
         print(self._c("dim", self.HEADER_LINE))
-        print(self._c("bold", "  BLOCKRUN CLAUDE CODE WALLET"))
+        print(self._c("bold", "  SOCIALCLAW"))
         print(self._c("dim", self.HEADER_LINE))
 
         # Model info
@@ -121,7 +121,7 @@ class BlockRunBranding:
         if description:
             print(f"  {self._c('dim', description)}")
 
-        print(f"  {self._c('dim', 'Accessed via: BlockRun x402 micropayments')}")
+        print(f"  {self._c('dim', 'Accessed via: SocialClaw x402 micropayments')}")
         print(self._c("dim", "-" * 60))
 
     def print_footer(
@@ -157,7 +157,7 @@ class BlockRunBranding:
         if budget_remaining is not None and budget_limit is not None:
             print(f"  {self._c('green', '✓')} Budget remaining: ${budget_remaining:.4f} of ${budget_limit:.2f}")
 
-        print(f"  {self._c('dim', 'Powered by BlockRun • blockrun.ai')}")
+        print(f"  {self._c('dim', 'Powered by SocialClaw × BlockRun • blockrun.ai')}")
 
     def print_error(self, message: str, help_link: Optional[str] = None):
         """
@@ -192,7 +192,7 @@ class BlockRunBranding:
         """
         print()
         print(self._c("dim", self.HEADER_LINE))
-        print(self._c("bold", "  BLOCKRUN WALLET"))
+        print(self._c("bold", "  SOCIALCLAW WALLET"))
         print(self._c("dim", self.HEADER_LINE))
         print(f"  Address: {self._c('cyan', wallet)}")
         print(f"  Network: {network}")
