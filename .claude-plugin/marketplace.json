@@ -1,14 +1,14 @@
 {
-  "name": "blockrun",
+  "name": "socialclaw",
   "owner": {
     "name": "BlockRun",
-    "email": "care@blockrun.ai"
+    "email": "hello@blockrun.ai"
   },
   "plugins": [
     {
-      "name": "blockrun",
-      "source": "./skills/blockrun",
-      "description": "Real-time X/Twitter data (15 endpoints), image generation, and 30+ AI models — no API keys, just USDC micropayments"
+      "name": "socialclaw",
+      "source": "./skills/socialclaw",
+      "description": "Grow your X/Twitter to 5M+ views in 3 months — trend detection, audience insights, engagement targets, KOL discovery. No API keys, just USDC."
     }
   ]
 }
