@@ -866,6 +866,85 @@ def analytics(handle: str):
     client.close()
 
 
+# ── Workflow 10: Brief ─────────────────────────────────────────
+
+def brief(username: str):
+    """Morning brief — mentions, trends, top followers, action items."""
+    username = username.lstrip("@")
+    client = _get_client()
+
+    print(f"\n{'=' * 60}")
+    print(f"  SOCIALCLAW BRIEF — @{username}")
+    print(f"{'=' * 60}")
+
+    # 1. Profile
+    print("\n  Fetching profile...")
+    info = _api(client, "/v1/x/users/info", {"username": username})
+    d = info.get("data", {})
+    if isinstance(d.get("data"), dict):
+        d = d["data"]
+
+    followers = d.get("followers") or d.get("followersCount") or 0
+    bio = d.get("description") or d.get("bio") or ""
+    print(f"\n  PROFILE")
+    print(f"  Followers: {followers:,}")
+    if bio:
+        print(f"  Bio: {bio[:100]}")
+
+    # 2. Mentions
+    print("\n  Fetching mentions...")
+    mentions = _api(client, "/v1/x/users/mentions", {"username": username})
+    mention_tweets = mentions.get("tweets", [])
+
+    print(f"\n  OVERNIGHT MENTIONS ({len(mention_tweets)} new)")
+    for tw in mention_tweets[:8]:
+        _print_tweet(tw, max_text=120)
+        print()
+
+    # 3. Trending
+    print("  Fetching trends...")
+    trending = _api(client, "/v1/x/trending", {})
+    topics = trending.get("data", {}).get("topics", [])
+
+    print(f"\n  TRENDING NOW")
+    for t in topics[:5]:
+        name = t.get("name", "?")
+        views = t.get("totalViews", 0)
+        print(f"    {name:<24} {views:>15,} views")
+
+    # 4. Top followers
+    print("\n  Fetching followers...")
+    fdata = _api(client, "/v1/x/users/followers", {"username": username})
+    flist = fdata.get("followers", [])
+    top = sorted(flist, key=lambda x: x.get("followers_count", 0), reverse=True)[:5]
+
+    print(f"\n  TOP FOLLOWERS")
+    for f in top:
+        print(f"    @{f.get('userName', '?'):<22} {f.get('followers_count', 0):>10,} followers")
+
+    # 5. Suggested actions
+    print(f"\n  SUGGESTED ACTIONS")
+    if mention_tweets:
+        top_mention = max(
+            mention_tweets[:15],
+            key=lambda t: (t.get("author", {}).get("followers", 0)
+                           or t.get("author", {}).get("followersCount", 0) or 0),
+        )
+        a = top_mention.get("author", {})
+        h = a.get("userName", "?")
+        fc = a.get("followers", a.get("followersCount", 0))
+        if fc:
+            print(f"    1. Reply to @{h} ({fc:,} followers) — high-value mention")
+        else:
+            print(f"    1. Reply to @{h} — recent mention")
+    if topics:
+        print(f"    2. Post about \"{topics[0]['name']}\" — {topics[0].get('totalViews', 0):,} views and trending")
+    print(f"    3. Engage in top 5 threads in your niche (use hitlist)")
+
+    _print_cost(client)
+    client.close()
+
+
 # ── Helpers ────────────────────────────────────────────────────
 
 def _print_cost(client):
@@ -888,6 +967,7 @@ def main():
         print("  Account Intelligence:")
         print("    insight @username          Deep-dive: profile, mentions, followers, tweets")
         print("    analytics @username        Author intelligence report (posting patterns, reach)")
+        print("    brief @username            Morning brief: mentions, trends, actions")
         print("    check @username            Verify posted tweets & check engagement")
         print()
         print("  Discovery & Search:")
@@ -933,9 +1013,11 @@ def main():
         thread(sys.argv[2])
     elif cmd == "analytics" and len(sys.argv) >= 3:
         analytics(sys.argv[2])
+    elif cmd == "brief" and len(sys.argv) >= 3:
+        brief(sys.argv[2])
     else:
         print(f"Unknown: {cmd}")
-        print("Commands: insight, radar, compare, engage, check, search, tweet, thread, analytics")
+        print("Commands: insight, radar, compare, engage, check, search, tweet, thread, analytics, brief")
         print("Run without arguments for full help.")
 
 
