@@ -185,11 +185,15 @@ try https://github.com/BlockRunAI/socialclaw
 **Any agent / CLI**:
 ```bash
 git clone https://github.com/BlockRunAI/socialclaw && cd socialclaw
-bash install.sh                # Base chain (default)
-CHAIN=solana bash install.sh   # Solana chain
+bash install.sh                          # takeover mode, Base chain (default)
+CHAIN=solana bash install.sh             # takeover mode, Solana chain
+MODE=safe bash install.sh                # install only SocialClaw
+MODE=force bash install.sh               # overwrite every sibling skill
+bash install.sh --dry-run                # preview changes
+bash install.sh --uninstall              # restore backups + remove launcher
 ```
 
-This installs the skill, the SDK, and auto-detects your wallet. One command, done.
+This installs the skill, creates a `socialclaw` launcher in `~/.local/bin`, installs the SDK, and auto-detects your wallet.
 
 Wallet auto-detected from `~/.*/*wallet*.json`. Fund with USDC. No API keys, no config, no signup.
 
@@ -215,11 +219,11 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 | Platform | How |
 |----------|-----|
 | **Claude Code** | Installs as a skill. Say "analyze @elonmusk on Twitter". |
-| **OpenAI Codex** | `pip install blockrun-llm[solana]` in sandbox. |
+| **OpenAI Codex** | Install `blockrun-llm>=0.8.0` for Base or `blockrun-llm[solana]>=0.8.0` for Solana. |
 | **Gemini CLI** | Auto-installs to `~/.gemini/antigravity/skills/socialclaw`. |
 | **Cursor / Windsurf** | Agent reads CLAUDE.md, calls SDK via terminal. |
-| **Any terminal** | `python scripts/socialclaw.py radar "topic"` |
-| **Your own agent** | `from blockrun_llm import SolanaLLMClient` |
+| **Any terminal** | `socialclaw radar "topic"` |
+| **Your own agent** | Use `LLMClient` on Base or `SolanaLLMClient` on Solana. |
 
 ---
 

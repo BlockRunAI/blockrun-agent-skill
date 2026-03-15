@@ -76,13 +76,14 @@ User asks about X/Twitter
 ## Setup (run once)
 
 ```python
-# Auto-installs SDK and finds any available wallet
-import subprocess, sys
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "blockrun-llm[solana]>=0.8.0"], stdout=subprocess.DEVNULL)
-
 from pathlib import Path
+import subprocess, sys
+
 chain_file = Path.home() / ".blockrun" / ".chain"
 chain = chain_file.read_text().strip() if chain_file.exists() else "base"
+pkg = "blockrun-llm[solana]>=0.8.0" if chain == "solana" else "blockrun-llm>=0.8.0"
+
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg], stdout=subprocess.DEVNULL)
 
 if chain == "solana":
     from blockrun_llm import setup_agent_solana_wallet

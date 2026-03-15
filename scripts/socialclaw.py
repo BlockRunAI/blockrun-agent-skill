@@ -12,12 +12,16 @@ Workflows:
   1. insight @username     — deep-dive account analysis
   2. radar <topic>         — trending topics + content opportunities
   3. compare @a @b         — side-by-side competitor analysis
-  4. engage @username      — find mentions & generate reply drafts
-  5. check @username       — verify posted tweets & engagement
-  6. search <query>        — structured search + top tweets
-  7. tweet <id_or_url>     — look up specific tweet + replies
-  8. thread <id_or_url>    — get full tweet thread
-  9. analytics @handle     — author intelligence report
+  4. audience @username    — segment followers by influence tier
+  5. scout <topic>         — identify top voices in a niche
+  6. hitlist <topic>       — rank high-value conversations to join
+  7. engage @username      — find mentions & generate reply drafts
+  8. check @username       — verify posted tweets & engagement
+  9. search <query>        — structured search + top tweets
+ 10. tweet <id_or_url>     — look up specific tweet + replies
+ 11. thread <id_or_url>    — get full tweet thread
+ 12. analytics @handle     — author intelligence report
+ 13. brief @handle         — morning brief with suggested actions
 """
 
 import json
@@ -27,19 +31,6 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Auto-install dependencies if missing
-def _ensure_deps():
-    try:
-        import blockrun_llm  # noqa: F401
-    except ImportError:
-        print("  Installing blockrun-llm[solana]...")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", "blockrun-llm[solana]>=0.8.0"],
-            stdout=subprocess.DEVNULL,
-        )
-
-_ensure_deps()
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
@@ -48,28 +39,85 @@ except ImportError:
     from utils.config import get_chain, get_wallet_source, get_private_key
 
 
-def _get_client():
-    """Get a client using any available wallet (Solana or Base)."""
-    from blockrun_llm.solana_wallet import load_solana_wallet
-    from blockrun_llm.wallet import load_wallet
+def _install_pkg_for_chain(chain: str) -> str:
+    return "blockrun-llm[solana]>=0.8.0" if chain == "solana" else "blockrun-llm>=0.8.0"
 
-    sol_key = load_solana_wallet()
-    if sol_key:
+
+def _ensure_deps(chain: str):
+    """Install blockrun-llm only when a real command is executed."""
+    pkg = _install_pkg_for_chain(chain)
+
+    try:
+        import blockrun_llm  # noqa: F401
+
+        if chain == "solana":
+            from blockrun_llm import SolanaLLMClient  # noqa: F401
+        else:
+            from blockrun_llm import LLMClient  # noqa: F401
+        return
+    except ImportError:
+        print(f"  Installing {pkg}...")
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-q", pkg],
+            stdout=subprocess.DEVNULL,
+        )
+
+
+def _unwrap_data(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Unwrap nested API payloads like {'data': {'data': {...}}}."""
+    data: Dict[str, Any] = payload.get("data", payload)
+    while isinstance(data, dict) and isinstance(data.get("data"), dict):
+        data = data["data"]
+    return data
+
+
+def _follower_count(entity: dict) -> int:
+    return (
+        entity.get("followers")
+        or entity.get("followersCount")
+        or entity.get("followers_count")
+        or 0
+    )
+
+
+def _bio_text(entity: dict) -> str:
+    return entity.get("description") or entity.get("bio") or ""
+
+
+def _display_name(entity: dict) -> str:
+    return entity.get("name") or entity.get("displayName") or entity.get("userName") or "?"
+
+
+def _get_client():
+    """Get a client that respects the selected chain preference."""
+    chain = get_chain()
+    private_key = get_private_key()
+    wallet_source = get_wallet_source()
+
+    if not private_key:
+        if chain == "solana":
+            print("  Error: No Solana wallet found.")
+            print("  Place solana-wallet.json in ~/.<provider>/ or set SOLANA_WALLET_KEY.")
+        else:
+            print("  Error: No Base wallet found.")
+            print("  Place wallet.json in ~/.<provider>/ or set BLOCKRUN_WALLET_KEY.")
+        print("  Chain preference comes from ~/.blockrun/.chain.")
+        sys.exit(1)
+
+    if chain == "solana":
         from blockrun_llm import SolanaLLMClient
-        client = SolanaLLMClient(private_key=sol_key)
-        chain = "solana"
+
+        client = SolanaLLMClient(private_key=private_key)
     else:
-        base_key = load_wallet()
-        if not base_key:
-            print("  Error: No wallet found.")
-            print("  Place wallet.json or solana-wallet.json in any ~/.<provider>/ folder.")
-            sys.exit(1)
         from blockrun_llm import LLMClient
-        client = LLMClient(private_key=base_key)
-        chain = "base"
+
+        client = LLMClient(private_key=private_key)
 
     addr = client.get_wallet_address()
-    print(f"  Wallet: {addr[:6]}...{addr[-4:]} ({chain})")
+    source_hint = ""
+    if wallet_source and wallet_source.get("source"):
+        source_hint = f" from {os.path.basename(wallet_source['source'])}"
+    print(f"  Wallet: {addr[:6]}...{addr[-4:]} ({chain}{source_hint})")
     print(f"  Balance: ${client.get_balance():.2f}")
     return client
 
@@ -275,17 +323,14 @@ def insight(username: str):
     # 1. Profile (structured API — stable)
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
-    d = info.get("data", {})
-    # Handle nested data (API returns {"data": {"data": {...}}})
-    if isinstance(d.get("data"), dict):
-        d = d["data"]
+    d = _unwrap_data(info)
 
-    followers = d.get("followers") or d.get("followersCount") or 0
+    followers = _follower_count(d)
     following = d.get("following") or d.get("followingCount") or 0
     tweets = d.get("statusesCount") or d.get("tweetsCount") or 0
     verified = d.get("isBlueVerified", False)
-    bio = d.get("description") or d.get("bio") or ""
-    name = d.get("name") or username
+    bio = _bio_text(d)
+    name = _display_name(d) or username
 
     print(f"\n  PROFILE")
     print(f"  {'Name:':<14} {name}")
@@ -421,10 +466,8 @@ def compare(user1: str, user2: str):
 
     # Profiles (structured API — stable)
     print("\n  Fetching profiles...")
-    info1 = _api(client, "/v1/x/users/info", {"username": user1}).get("data", {})
-    info2 = _api(client, "/v1/x/users/info", {"username": user2}).get("data", {})
-    if isinstance(info1.get("data"), dict): info1 = info1["data"]
-    if isinstance(info2.get("data"), dict): info2 = info2["data"]
+    info1 = _unwrap_data(_api(client, "/v1/x/users/info", {"username": user1}))
+    info2 = _unwrap_data(_api(client, "/v1/x/users/info", {"username": user2}))
 
     def _get(d, *keys):
         for k in keys:
@@ -509,7 +552,221 @@ def compare(user1: str, user2: str):
     client.close()
 
 
-# ── Workflow 4: Engage ──────────────────────────────────────────
+# ── Workflow 4: Audience ────────────────────────────────────────
+
+def audience(username: str):
+    """Segment an account's followers by influence tier."""
+    username = username.lstrip("@")
+    client = _get_client()
+
+    print(f"\n{'=' * 60}")
+    print(f"  SOCIALCLAW AUDIENCE — @{username}")
+    print(f"{'=' * 60}")
+
+    print("\n  Fetching followers...")
+    fdata = _api(client, "/v1/x/users/followers", {"username": username})
+    follower_list = fdata.get("followers", [])
+
+    if not follower_list:
+        print("\n  No follower data returned.")
+        _print_cost(client)
+        client.close()
+        return
+
+    buckets = {
+        "mega": {"label": "100K+ followers", "items": []},
+        "macro": {"label": "10K-100K followers", "items": []},
+        "micro": {"label": "1K-10K followers", "items": []},
+        "emerging": {"label": "<1K followers", "items": []},
+    }
+
+    for follower in follower_list:
+        followers = _follower_count(follower)
+        if followers >= 100_000:
+            buckets["mega"]["items"].append(follower)
+        elif followers >= 10_000:
+            buckets["macro"]["items"].append(follower)
+        elif followers >= 1_000:
+            buckets["micro"]["items"].append(follower)
+        else:
+            buckets["emerging"]["items"].append(follower)
+
+    print(f"\n  FOLLOWER TIERS ({len(follower_list)} sampled)")
+    for key in ("mega", "macro", "micro", "emerging"):
+        print(f"    {buckets[key]['label']:<20} {len(buckets[key]['items']):>4}")
+
+    for key in ("mega", "macro", "micro"):
+        items = sorted(
+            buckets[key]["items"],
+            key=lambda item: _follower_count(item),
+            reverse=True,
+        )[:5]
+        if not items:
+            continue
+
+        print(f"\n  TOP {buckets[key]['label'].upper()}")
+        for item in items:
+            handle = item.get("userName", "?")
+            name = _display_name(item)
+            followers = _follower_count(item)
+            bio = _bio_text(item)[:70]
+            print(f"    @{handle:<20} {followers:>10,} followers  {name}")
+            if bio:
+                print(f"      {bio}")
+
+    verified = [f for f in follower_list if f.get("isBlueVerified")]
+    print(f"\n  SIGNALS")
+    print(f"    Verified followers: {len(verified)}")
+    print(f"    Top 10 followers hold: {sum(_follower_count(f) for f in sorted(follower_list, key=_follower_count, reverse=True)[:10]):,} combined followers")
+
+    _print_cost(client)
+    client.close()
+
+
+# ── Workflow 5: Scout ───────────────────────────────────────────
+
+def scout(topic: str):
+    """Find top voices talking about a topic."""
+    client = _get_client()
+
+    print(f"\n{'=' * 60}")
+    print(f"  SOCIALCLAW SCOUT — \"{topic}\"")
+    print(f"{'=' * 60}")
+
+    print(f"\n  Searching top tweets...")
+    search_result = _smart_search(client, topic, "Top")
+
+    if search_result["source"] != "api":
+        print(f"\n  TOP VOICES (via Grok Live Search)")
+        print(search_result["data"])
+        _print_cost(client)
+        client.close()
+        return
+
+    tweets = search_result["data"].get("tweets", [])
+    if not tweets:
+        print("\n  No tweets returned.")
+        _print_cost(client)
+        client.close()
+        return
+
+    authors: Dict[str, Dict[str, Any]] = {}
+    for tw in tweets:
+        author = tw.get("author", {})
+        handle = author.get("userName")
+        if not handle:
+            continue
+        followers = _follower_count(author)
+        engagement = tw.get("likeCount", 0) + tw.get("retweetCount", 0)
+        entry = authors.setdefault(
+            handle,
+            {
+                "followers": followers,
+                "name": _display_name(author),
+                "bio": _bio_text(author),
+                "engagement": engagement,
+                "sample": tw.get("text", ""),
+                "link": _tweet_link(tw),
+            },
+        )
+        if followers > entry["followers"] or engagement > entry["engagement"]:
+            entry["followers"] = max(entry["followers"], followers)
+            entry["engagement"] = max(entry["engagement"], engagement)
+            entry["sample"] = tw.get("text", "")
+            entry["link"] = _tweet_link(tw)
+            if _bio_text(author):
+                entry["bio"] = _bio_text(author)
+
+    ranked = sorted(
+        authors.items(),
+        key=lambda item: (item[1]["followers"], item[1]["engagement"]),
+        reverse=True,
+    )
+
+    print(f"\n  TOP VOICES ({len(ranked)} unique authors)")
+    for handle, data in ranked[:10]:
+        bio = (data.get("bio") or "")[:70]
+        sample = (data.get("sample") or "")[:110].replace("\n", " ")
+        print(f"    @{handle:<20} {data['followers']:>10,} followers  {data['engagement']:>6} engagement")
+        if bio:
+            print(f"      {bio}")
+        if sample:
+            print(f"      \"{sample}\"")
+        if data.get("link"):
+            print(f"      {data['link']}")
+
+    _print_cost(client)
+    client.close()
+
+
+def _suggest_reply_angle(text: str, topic: str) -> str:
+    lowered = text.lower()
+    if "?" in text:
+        return "Answer the question with one concrete example or metric."
+    if any(token in lowered for token in (" vs ", "versus", "compare", "better", "worse")):
+        return "Add a differentiated tradeoff or benchmark instead of a generic opinion."
+    if any(token in lowered for token in ("cost", "price", "cheap", "expensive", "save")):
+        return "Reply with a concrete cost or performance datapoint."
+    if any(token in lowered for token in ("launch", "launched", "shipping", "released", "announcement")):
+        return "Connect the launch to a practical use case or user outcome."
+    return f"Add one sharp insight or operator datapoint related to {topic}."
+
+
+# ── Workflow 6: Hitlist ─────────────────────────────────────────
+
+def hitlist(topic: str):
+    """Find high-value conversations worth engaging with right now."""
+    client = _get_client()
+
+    print(f"\n{'=' * 60}")
+    print(f"  SOCIALCLAW HITLIST — \"{topic}\"")
+    print(f"{'=' * 60}")
+
+    print(f"\n  Searching recent tweets...")
+    search_result = _smart_search(client, topic, "Latest")
+
+    if search_result["source"] != "api":
+        print(f"\n  ENGAGEMENT TARGETS (via Grok Live Search)")
+        print(search_result["data"])
+        _print_cost(client)
+        client.close()
+        return
+
+    tweets = search_result["data"].get("tweets", [])
+    if not tweets:
+        print("\n  No tweets returned.")
+        _print_cost(client)
+        client.close()
+        return
+
+    ranked = sorted(
+        tweets,
+        key=lambda tw: (
+            tw.get("likeCount", 0) + tw.get("retweetCount", 0),
+            _follower_count(tw.get("author", {})),
+        ),
+        reverse=True,
+    )
+
+    print(f"\n  ENGAGEMENT TARGETS")
+    for tw in ranked[:10]:
+        author = tw.get("author", {})
+        handle = author.get("userName", "?")
+        followers = _follower_count(author)
+        engagement = tw.get("likeCount", 0) + tw.get("retweetCount", 0)
+        text = tw.get("text", "")[:140].replace("\n", " ")
+        link = _tweet_link(tw)
+        print(f"    @{handle:<18} {followers:>9,} followers  {engagement:>5} engagement")
+        print(f"      {text}")
+        if link:
+            print(f"      {link}")
+        print(f"      Suggest: {_suggest_reply_angle(tw.get('text', ''), topic)}")
+
+    _print_cost(client)
+    client.close()
+
+
+# ── Workflow 7: Engage ──────────────────────────────────────────
 
 def engage(username: str, product: str = None):
     """
@@ -607,7 +864,7 @@ Output as structured text, not JSON."""},
     client.close()
 
 
-# ── Workflow 5: Check ───────────────────────────────────────────
+# ── Workflow 8: Check ───────────────────────────────────────────
 
 def check(username: str):
     """
@@ -624,10 +881,9 @@ def check(username: str):
     # 1. Profile stats (structured API — stable)
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
-    d = info.get("data", {})
-    if isinstance(d.get("data"), dict): d = d["data"]
+    d = _unwrap_data(info)
 
-    followers = d.get("followers") or d.get("followersCount") or 0
+    followers = _follower_count(d)
     print(f"  Followers: {followers:,}")
 
     # 2. Latest tweets via Grok (reliable, no 502)
@@ -675,7 +931,7 @@ def check(username: str):
     client.close()
 
 
-# ── Workflow 6: Search (structured API first, Grok enhancement) ─
+# ── Workflow 9: Search (structured API first, Grok enhancement) ─
 
 def search(query: str, x_only: bool = True):
     """Search X/Twitter — structured API first, Grok for AI analysis."""
@@ -720,7 +976,7 @@ def search(query: str, x_only: bool = True):
     client.close()
 
 
-# ── Workflow 7: Tweet Lookup ──────────────────────────────────
+# ── Workflow 10: Tweet Lookup ─────────────────────────────────
 
 def tweet(tweet_id: str):
     """Look up a specific tweet by ID."""
@@ -778,7 +1034,7 @@ def tweet(tweet_id: str):
     client.close()
 
 
-# ── Workflow 8: Thread ────────────────────────────────────────
+# ── Workflow 11: Thread ───────────────────────────────────────
 
 def thread(tweet_id: str):
     """Get a full thread starting from a tweet."""
@@ -815,7 +1071,7 @@ def thread(tweet_id: str):
     client.close()
 
 
-# ── Workflow 9: Author Analytics ──────────────────────────────
+# ── Workflow 12: Author Analytics ─────────────────────────────
 
 def analytics(handle: str):
     """Deep author intelligence report."""
@@ -850,12 +1106,11 @@ def analytics(handle: str):
     # 2. Also get profile for context
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": handle})
-    d = info.get("data", {})
-    if isinstance(d.get("data"), dict): d = d["data"]
+    d = _unwrap_data(info)
 
-    followers = d.get("followers") or d.get("followersCount") or 0
+    followers = _follower_count(d)
     following = d.get("following") or d.get("followingCount") or 0
-    bio = d.get("description") or d.get("bio") or ""
+    bio = _bio_text(d)
 
     print(f"\n  PROFILE CONTEXT")
     print(f"  {'Followers:':<14} {followers:,}")
@@ -866,7 +1121,7 @@ def analytics(handle: str):
     client.close()
 
 
-# ── Workflow 10: Brief ─────────────────────────────────────────
+# ── Workflow 13: Brief ────────────────────────────────────────
 
 def brief(username: str):
     """Morning brief — mentions, trends, top followers, action items."""
@@ -880,12 +1135,10 @@ def brief(username: str):
     # 1. Profile
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
-    d = info.get("data", {})
-    if isinstance(d.get("data"), dict):
-        d = d["data"]
+    d = _unwrap_data(info)
 
-    followers = d.get("followers") or d.get("followersCount") or 0
-    bio = d.get("description") or d.get("bio") or ""
+    followers = _follower_count(d)
+    bio = _bio_text(d)
     print(f"\n  PROFILE")
     print(f"  Followers: {followers:,}")
     if bio:
@@ -956,44 +1209,83 @@ def _print_cost(client):
 
 # ── CLI ─────────────────────────────────────────────────────────
 
+def _print_help():
+    print("SocialClaw v3 — X/Twitter Marketing Intelligence")
+    print()
+    print("  Structured APIs first, Grok AI enhancement. All via BlockRun x402.")
+    print()
+    print("COMMANDS:")
+    print()
+    print("  Account Intelligence:")
+    print("    insight @username          Deep-dive: profile, mentions, followers, tweets")
+    print("    audience @username         Segment followers by influence tier")
+    print("    analytics @username        Author intelligence report (posting patterns, reach)")
+    print("    brief @username            Morning brief: mentions, trends, actions")
+    print("    check @username            Verify posted tweets & check engagement")
+    print()
+    print("  Discovery & Search:")
+    print("    search <query>             Search X (structured API + top tweets)")
+    print("    radar <topic>              Trending topics + content opportunities")
+    print("    scout <topic>              Find top voices and KOLs on a topic")
+    print("    hitlist <topic>            Find high-value conversations to join")
+    print("    tweet <id_or_url>          Look up a specific tweet + replies")
+    print("    thread <id_or_url>         Get a full tweet thread")
+    print()
+    print("  Competitive & Engagement:")
+    print("    compare @user1 @user2      Side-by-side competitor analysis")
+    print("    engage @username           Find mentions & generate reply drafts")
+    print()
+    print("EXAMPLES:")
+    print("  socialclaw insight @elonmusk")
+    print("  socialclaw audience @jessepollak")
+    print("  socialclaw search 'AI agents crypto'")
+    print("  socialclaw radar 'Solana DeFi'")
+    print("  socialclaw scout 'x402 crypto'")
+    print("  socialclaw hitlist 'Base blockchain'")
+    print("  socialclaw tweet https://x.com/user/status/1234567890123456789")
+    print("  socialclaw thread https://x.com/user/status/1234567890123456789")
+    print("  socialclaw analytics @VitalikButerin")
+    print("  socialclaw compare @solana @ethereum")
+    print()
+    print("COST: $0.03-$0.15 per workflow. All data saved to ~/.blockrun/data/")
+
+
 def main():
     if len(sys.argv) < 2:
-        print("SocialClaw v3 — X/Twitter Marketing Intelligence")
-        print()
-        print("  Structured APIs first, Grok AI enhancement. All via BlockRun x402.")
-        print()
-        print("COMMANDS:")
-        print()
-        print("  Account Intelligence:")
-        print("    insight @username          Deep-dive: profile, mentions, followers, tweets")
-        print("    analytics @username        Author intelligence report (posting patterns, reach)")
-        print("    brief @username            Morning brief: mentions, trends, actions")
-        print("    check @username            Verify posted tweets & check engagement")
-        print()
-        print("  Discovery & Search:")
-        print("    search <query>             Search X (structured API + top tweets)")
-        print("    radar <topic>              Trending topics + content opportunities")
-        print("    tweet <id_or_url>          Look up a specific tweet + replies")
-        print("    thread <id_or_url>         Get a full tweet thread")
-        print()
-        print("  Competitive & Engagement:")
-        print("    compare @user1 @user2      Side-by-side competitor analysis")
-        print("    engage @username           Find mentions & generate reply drafts")
-        print()
-        print("EXAMPLES:")
-        print("  python3 socialclaw.py insight @elonmusk")
-        print("  python3 socialclaw.py search 'AI agents crypto'")
-        print("  python3 socialclaw.py radar 'Solana DeFi'")
-        print("  python3 socialclaw.py tweet 1234567890123456789")
-        print("  python3 socialclaw.py tweet https://x.com/user/status/1234567890123456789")
-        print("  python3 socialclaw.py thread https://x.com/user/status/1234567890123456789")
-        print("  python3 socialclaw.py analytics @VitalikButerin")
-        print("  python3 socialclaw.py compare @solana @ethereum")
-        print()
-        print("COST: $0.03-$0.15 per workflow. All data saved to ~/.blockrun/data/")
+        _print_help()
         return
 
     cmd = sys.argv[1].lower()
+    known_commands = {
+        "insight",
+        "radar",
+        "compare",
+        "audience",
+        "scout",
+        "hitlist",
+        "engage",
+        "check",
+        "search",
+        "tweet",
+        "thread",
+        "analytics",
+        "brief",
+        "help",
+        "--help",
+        "-h",
+    }
+
+    if cmd not in known_commands:
+        print(f"Unknown: {cmd}")
+        print("Commands: insight, radar, compare, audience, scout, hitlist, engage, check, search, tweet, thread, analytics, brief")
+        print("Run without arguments for full help.")
+        return
+
+    if cmd in {"help", "--help", "-h"}:
+        _print_help()
+        return
+
+    _ensure_deps(get_chain())
 
     if cmd == "insight" and len(sys.argv) >= 3:
         insight(sys.argv[2])
@@ -1001,6 +1293,12 @@ def main():
         radar(" ".join(sys.argv[2:]))
     elif cmd == "compare" and len(sys.argv) >= 4:
         compare(sys.argv[2], sys.argv[3])
+    elif cmd == "audience" and len(sys.argv) >= 3:
+        audience(sys.argv[2])
+    elif cmd == "scout" and len(sys.argv) >= 3:
+        scout(" ".join(sys.argv[2:]))
+    elif cmd == "hitlist" and len(sys.argv) >= 3:
+        hitlist(" ".join(sys.argv[2:]))
     elif cmd == "engage" and len(sys.argv) >= 3:
         engage(sys.argv[2], " ".join(sys.argv[3:]) if len(sys.argv) > 3 else None)
     elif cmd == "check" and len(sys.argv) >= 3:
@@ -1016,8 +1314,8 @@ def main():
     elif cmd == "brief" and len(sys.argv) >= 3:
         brief(sys.argv[2])
     else:
-        print(f"Unknown: {cmd}")
-        print("Commands: insight, radar, compare, engage, check, search, tweet, thread, analytics, brief")
+        print(f"Usage error for command: {cmd}")
+        print("Commands: insight, radar, compare, audience, scout, hitlist, engage, check, search, tweet, thread, analytics, brief")
         print("Run without arguments for full help.")
 
 
