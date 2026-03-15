@@ -4,9 +4,9 @@
 
 <img src="assets/banner.png" alt="SocialClaw" width="600" />
 
-<h3>Stop guessing what to post. Let your agent tell you.</h3>
+<h3>X/Twitter intelligence + content optimization for your AI agent.</h3>
 
-<p>SocialClaw gives your AI agent real-time X/Twitter intelligence.<br>
+<p>Research → Write → Optimize → Visualize → Monitor. Full loop.<br>
 One command → structured data → your agent acts on it. $0.08 per report.</p>
 
 <br />
@@ -229,6 +229,8 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 
 ## All Commands
 
+### Intelligence (Research & Analysis)
+
 | Command | What you get | Cost |
 |---------|-------------|------|
 | `insight @handle` | Full account analysis: profile, followers, mentions, tweets | ~$0.08 |
@@ -244,6 +246,16 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 | `thread <id/url>` | Get full tweet thread | ~$0.03 |
 | `engage @handle` | Find mentions + AI-generated reply drafts | ~$0.10 |
 | `check @handle` | Verify posted tweets + engagement metrics | ~$0.05 |
+
+### Content Creation (Write & Optimize)
+
+| Command | What you get | Cost |
+|---------|-------------|------|
+| `draft "topic"` | Algorithm-optimized post with 3 variations + strategy explanation | ~$0.03 |
+| `review` | Score your draft (1-10) with checklist audit + optimized rewrite | Free |
+| `image "description"` | X-optimized image (high contrast, bold colors, clean composition) | ~$0.05 |
+
+**Full loop:** Research (`radar`/`scout`) → Write (`draft`) → Optimize (`review`) → Visualize (`image`) → Monitor (`brief`/`analytics`)
 
 ---
 
